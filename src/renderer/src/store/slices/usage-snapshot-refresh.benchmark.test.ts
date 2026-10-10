@@ -29,7 +29,9 @@ async function flushImmediatePromises(): Promise<void> {
 }
 
 function createCodexOnlyStore() {
-  return create<AppState>()((...args) => createCodexUsageSlice(...args) as AppState)
+  return create<AppState>()(
+    (...args) => ({ statsHost: { kind: 'local' }, ...createCodexUsageSlice(...args) }) as AppState
+  )
 }
 
 function createScanState(overrides: Partial<CodexUsageScanState> = {}): CodexUsageScanState {

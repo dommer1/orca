@@ -20,6 +20,12 @@ import type {
   MuseUsageSnapshot
 } from '../../../../shared/muse-usage-types'
 import type { AppState } from '../types'
+import { runtimeTargetEnvironmentId } from '../../runtime/runtime-client-target'
+import {
+  createRuntimeUsageAnalyticsApi,
+  type UsageAnalyticsApi,
+  type UsageAnalyticsProvider
+} from '../../runtime/runtime-usage-analytics-client'
 import {
   createUsagePatch,
   readUsageData,
@@ -28,16 +34,12 @@ import {
   type UsageSnapshot
 } from './usage-provider-state'
 
-type UsageApi<T extends UsageProviderTypes<string, string, UsageSnapshot>> = {
-  getScanState: () => Promise<T['snapshot']['scanState']>
-  setEnabled: (args: { enabled: boolean }) => Promise<T['snapshot']['scanState']>
-  refresh: (args?: { force?: boolean }) => Promise<T['snapshot']['scanState']>
-  getSnapshot: (args: {
-    scope: T['scope']
-    range: T['range']
-    limit?: number
-  }) => Promise<T['snapshot']>
-}
+type UsageApi<T extends UsageProviderTypes<string, string, UsageSnapshot>> = UsageAnalyticsApi<
+  T['snapshot']['scanState'],
+  T['snapshot'],
+  T['scope'],
+  T['range']
+>
 
 type ProviderUsageSlice<
   Prefix extends string,
@@ -59,9 +61,10 @@ type UsageProviderConfig<
 > = {
   prefix: Prefix
   name: Name
+  provider: UsageAnalyticsProvider
   initialScope: T['scope']
   initialRange: T['range']
-  getApi: () => UsageApi<T>
+  getLocalApi: () => UsageApi<T>
   hasCachedData: (scanState: T['snapshot']['scanState']) => boolean
 }
 
@@ -73,16 +76,30 @@ function createUsageProviderSlice<
   config: UsageProviderConfig<Prefix, Name, T>
 ): StateCreator<AppState, [], [], ProviderUsageSlice<Prefix, Name, T>> {
   return (set, get) => {
-    const update = (patch: Partial<UsageData<T>>): void =>
-      set(createUsagePatch(config.prefix, patch))
     const read = (): UsageData<T> => readUsageData<T>(get(), config.prefix)
+    // Why: a host switch mid-request must not land the old host's answer on the new one.
+    const bindToCurrentHost = () => {
+      const host = get().statsHost
+      const hostId = runtimeTargetEnvironmentId(host)
+      const api: UsageApi<T> =
+        host.kind === 'environment'
+          ? createRuntimeUsageAnalyticsApi(host, config.provider)
+          : config.getLocalApi()
+      const isCurrent = (): boolean => runtimeTargetEnvironmentId(get().statsHost) === hostId
+      const update = (patch: Partial<UsageData<T>>): void => {
+        if (isCurrent()) {
+          set(createUsagePatch(config.prefix, patch))
+        }
+      }
+      return { api, update, isCurrent }
+    }
 
     const fetchUsage = async (opts?: { forceRefresh?: boolean }): Promise<void> => {
       try {
-        const api = config.getApi()
+        const { api, update, isCurrent } = bindToCurrentHost()
         const scanState = (await api.getScanState()) as T['snapshot']['scanState'] | undefined
         // Desktop-only usage APIs resolve undefined in paired web clients.
-        if (!scanState) {
+        if (!scanState || !isCurrent()) {
           return
         }
 
@@ -111,6 +128,9 @@ function createUsageProviderSlice<
           range: selection.range,
           limit: 10
         })
+        if (!isCurrent()) {
+          return
+        }
         if (
           snapshot.scanState.lastScanCompletedAt !== null ||
           config.hasCachedData(snapshot.scanState)
@@ -127,6 +147,9 @@ function createUsageProviderSlice<
         }
 
         await api.refresh({ force: opts?.forceRefresh ?? false })
+        if (!isCurrent()) {
+          return
+        }
         const refreshedSelection = read()
         update(
           await api.getSnapshot({
@@ -142,7 +165,8 @@ function createUsageProviderSlice<
 
     const setEnabled = async (enabled: boolean): Promise<void> => {
       try {
-        const nextScanState = (await config.getApi().setEnabled({ enabled })) as
+        const { api, update } = bindToCurrentHost()
+        const nextScanState = (await api.setEnabled({ enabled })) as
           | T['snapshot']['scanState']
           | undefined
         if (!nextScanState) {
@@ -186,11 +210,11 @@ function createUsageProviderSlice<
       ...createUsagePatch(config.prefix, initialData),
       [`set${config.name}UsageEnabled`]: setEnabled,
       [`set${config.name}UsageScope`]: async (scope: T['scope']) => {
-        update({ scope })
+        set(createUsagePatch(config.prefix, { scope }))
         await fetchUsage()
       },
       [`set${config.name}UsageRange`]: async (range: T['range']) => {
-        update({ range })
+        set(createUsagePatch(config.prefix, { range }))
         await fetchUsage()
       },
       [`fetch${config.name}Usage`]: fetchUsage,
@@ -222,18 +246,20 @@ export const createClaudeUsageSlice = createUsageProviderSlice<
 >({
   prefix: 'claude',
   name: 'Claude',
+  provider: 'claude',
   initialScope: 'orca',
   initialRange: '30d',
-  getApi: () => window.api.claudeUsage,
+  getLocalApi: () => window.api.claudeUsage,
   hasCachedData: (state) => state.hasAnyClaudeData
 })
 
 export const createCodexUsageSlice = createUsageProviderSlice<'codex', 'Codex', CodexUsageTypes>({
   prefix: 'codex',
   name: 'Codex',
+  provider: 'codex',
   initialScope: 'orca',
   initialRange: '30d',
-  getApi: () => window.api.codexUsage,
+  getLocalApi: () => window.api.codexUsage,
   hasCachedData: (state) => state.hasAnyCodexData
 })
 
@@ -244,17 +270,19 @@ export const createOpenCodeUsageSlice = createUsageProviderSlice<
 >({
   prefix: 'openCode',
   name: 'OpenCode',
+  provider: 'opencode',
   initialScope: 'orca',
   initialRange: '30d',
-  getApi: () => window.api.openCodeUsage,
+  getLocalApi: () => window.api.openCodeUsage,
   hasCachedData: (state) => state.hasAnyOpenCodeData
 })
 
 export const createMuseUsageSlice = createUsageProviderSlice<'muse', 'Muse', MuseUsageTypes>({
   prefix: 'muse',
   name: 'Muse',
+  provider: 'muse',
   initialScope: 'orca',
   initialRange: '30d',
-  getApi: () => window.api.museUsage,
+  getLocalApi: () => window.api.museUsage,
   hasCachedData: (state) => state.hasAnyMuseData
 })

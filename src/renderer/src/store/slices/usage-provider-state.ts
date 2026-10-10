@@ -70,3 +70,22 @@ export function createUsagePatch<T extends UsageProviderTypes<string, string, Us
       .map((field) => [usageDataKey(prefix, field), patch[field]])
   ) as Partial<AppState>
 }
+
+const USAGE_PROVIDER_PREFIXES = ['claude', 'codex', 'openCode', 'muse'] as const
+
+/** Clears every provider's numbers, keeping each pane's scope and range choices. */
+export function createUsageProviderResetPatch(): Partial<AppState> {
+  return Object.assign(
+    {},
+    ...USAGE_PROVIDER_PREFIXES.map((prefix) =>
+      createUsagePatch(prefix, {
+        scanState: null,
+        summary: null,
+        daily: [],
+        modelBreakdown: [],
+        projectBreakdown: [],
+        recentSessions: []
+      })
+    )
+  )
+}
