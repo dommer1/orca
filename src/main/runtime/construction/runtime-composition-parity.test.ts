@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { RUNTIME_CAPABILITIES } from '../../../shared/protocol-version'
 import { SSH_TARGET_MANAGEMENT_RUNTIME_CAPABILITY } from '../../../shared/ssh-target-management'
 import { SKILL_INSTALL_CAPABILITY } from '../../../shared/skill-install-capability'
+import { USAGE_ANALYTICS_RUNTIME_CAPABILITY } from '../../../shared/account-runtime-capabilities'
 
 /**
  * Electron (`main-process-*`) and orcad (`orcad-entry.ts`) each compose the same runtime, and every
@@ -38,6 +39,13 @@ const DECLARED_HOST_DIFFERENCES: readonly DeclaredDifference[] = [
     missingOn: 'orcad',
     reason: 'Skill sharing uses the desktop sign-in; installs from Git still work on orcad.',
     advertisedUnserved: [SKILL_INSTALL_CAPABILITY]
+  },
+  {
+    wiring: 'runtime.setUsageAnalyticsStores',
+    missingOn: 'orcad',
+    reason:
+      "Unwired gap (follow-up): the usage stores read Electron's userData path; usage.* refuses.",
+    advertisedUnserved: [USAGE_ANALYTICS_RUNTIME_CAPABILITY]
   },
   {
     wiring: 'registerSshHandlers',
