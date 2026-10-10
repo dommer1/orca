@@ -4772,7 +4772,9 @@
           "eb6a066185": "claude",
           "eee19cfade": "overview",
           "grokUsageTab": "Grok",
-          "trackingSince": "Tracking since {{value0}}"
+          "trackingSince": "Tracking since {{value0}}",
+          "hostUsageUpdateRequired": "This server runs an older Orca that cannot report token usage. Update Orca on the server to see its usage here.",
+          "hostUsageConnecting": "Connecting to this server. Its token usage appears once it answers."
         },
         "UsageOverviewPane": {
           "22ed1b7669": "sessions",
@@ -13070,7 +13072,7 @@
         "SettingsHostScopePicker": {
           "label": "Host",
           "unavailable": "{{value0}} (unavailable)",
-          "description": "Accounts, detected agents and terminal options below are for this host.",
+          "description": "Accounts, detected agents, terminal options and Stats & Usage below are for this host.",
           "unavailableNotice": "This server is no longer saved, so nothing can be shown for it. Choose another host at the top of Settings."
         },
         "wslHostsExperimental": {
