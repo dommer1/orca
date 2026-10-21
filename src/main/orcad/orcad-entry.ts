@@ -243,6 +243,9 @@ async function startOrcadRuntime(
 
   accountLaunch?.attachToRuntime(runtime)
 
+  const { startOrcadUsageAnalytics } = await import('./orcad-usage-analytics')
+  startOrcadUsageAnalytics(runtime, runtimeUserDataPath, profileStore, registerCleanup)
+
   // Why before any launch: a desktop that owns this host's accounts pushed them on an earlier run.
   const { restoreOrcadHostAccountLaunchEnv } = await import('./orcad-host-account-launch-env-store')
   restoreOrcadHostAccountLaunchEnv(runtime, runtimeUserDataPath)
