@@ -31,10 +31,6 @@ vi.mock('../../store', () => ({
 vi.mock('@/runtime/structured-agent-session-host-capability', () => ({
   useStructuredAgentSessionHostCapabilityState: () => hostCapability
 }))
-vi.mock('@/i18n/i18n', () => ({
-  translate: (_key: string, fallback: string) => fallback,
-  getIntlLocale: () => 'en-US'
-}))
 vi.mock('./UsageOverviewPane', () => ({
   UsageOverviewPane: () => <div>usage overview</div>
 }))
