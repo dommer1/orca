@@ -2,6 +2,7 @@ import { translate } from '@/i18n/i18n'
 import type { AppState } from '../../types'
 import type { NewBrowserTabProfile } from './browser-slice-contract'
 import { findWorktreeById } from '../worktree-helpers'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '../../workspace-record-selectors'
 import { parseWorkspaceKey } from '../../../../../shared/workspace-scope'
 import { parseExecutionHostId, type ExecutionHostId } from '../../../../../shared/execution-host'
 import {
@@ -45,8 +46,8 @@ function managedProfileLabel(
   const scope = parseWorkspaceKey(worktreeId)
   const name =
     (scope?.type === 'folder'
-      ? state.folderWorkspaces.find((folder) => folder.id === scope.folderWorkspaceId)?.name
-      : findWorktreeById(state.worktreesByRepo, worktreeId)?.displayName) || worktreeId
+      ? selectFolderWorkspaces(state).find((folder) => folder.id === scope.folderWorkspaceId)?.name
+      : findWorktreeById(selectWorktreesByRepo(state), worktreeId)?.displayName) || worktreeId
   return translate('settings.browser.profileScope.worktreeProfileLabel', 'Workspace: {{name}}', {
     name
   })

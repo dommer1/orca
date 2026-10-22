@@ -12,7 +12,7 @@ import {
   getBrowserSettingsHostId,
   getBrowserSettingsRuntimeEnvironmentId,
   profileListByHostUpdate,
-  profileRemovedFromHost
+  getDefaultBrowserProfileForHost
 } from './browser-host-state'
 
 export function createBrowserProfileListActions(
@@ -119,7 +119,24 @@ export function createBrowserProfileListActions(
             { timeoutMs: 15_000 }
           )
           if (result.deleted) {
-            set((s) => profileRemovedFromHost(s, hostId, profileId))
+            set((s) => ({
+              ...profileListByHostUpdate(
+                s,
+                getBrowserProfilesForHost(s, hostId).filter((profile) => profile.id !== profileId),
+                hostId
+              ),
+              ...(getDefaultBrowserProfileForHost(s, hostId) === profileId
+                ? {
+                    ...(getBrowserSettingsHostId(s) === hostId
+                      ? { defaultBrowserSessionProfileId: null }
+                      : {}),
+                    defaultBrowserSessionProfileIdByHostId: {
+                      ...s.defaultBrowserSessionProfileIdByHostId,
+                      [hostId]: null
+                    }
+                  }
+                : {})
+            }))
           }
           return result.deleted
         } catch {
@@ -129,7 +146,24 @@ export function createBrowserProfileListActions(
       try {
         const ok = await window.api.browser.sessionDeleteProfile({ profileId })
         if (ok) {
-          set((s) => profileRemovedFromHost(s, hostId, profileId))
+          set((s) => ({
+            ...profileListByHostUpdate(
+              s,
+              getBrowserProfilesForHost(s, hostId).filter((profile) => profile.id !== profileId),
+              hostId
+            ),
+            ...(getDefaultBrowserProfileForHost(s, hostId) === profileId
+              ? {
+                  ...(getBrowserSettingsHostId(s) === hostId
+                    ? { defaultBrowserSessionProfileId: null }
+                    : {}),
+                  defaultBrowserSessionProfileIdByHostId: {
+                    ...s.defaultBrowserSessionProfileIdByHostId,
+                    [hostId]: null
+                  }
+                }
+              : {})
+          }))
         }
         return ok
       } catch {

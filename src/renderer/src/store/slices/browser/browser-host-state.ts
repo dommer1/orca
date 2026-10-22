@@ -138,42 +138,14 @@ export function profileListByHostUpdate(
   }
 }
 
-const NO_PROFILES: BrowserSessionProfile[] = []
-
 export function getBrowserProfilesForHost(
   state: AppState,
   hostId: ExecutionHostId
 ): BrowserSessionProfile[] {
   return (
     state.browserSessionProfilesByHostId[hostId] ??
-    (getBrowserSettingsHostId(state) === hostId ? state.browserSessionProfiles : NO_PROFILES)
+    (getBrowserSettingsHostId(state) === hostId ? state.browserSessionProfiles : [])
   )
-}
-
-/** Drops a deleted profile from a host's list, and from its default when it was that. */
-export function profileRemovedFromHost(
-  state: AppState,
-  hostId: ExecutionHostId,
-  profileId: string
-): Partial<BrowserSlice> {
-  return {
-    ...profileListByHostUpdate(
-      state,
-      getBrowserProfilesForHost(state, hostId).filter((profile) => profile.id !== profileId),
-      hostId
-    ),
-    ...(getDefaultBrowserProfileForHost(state, hostId) === profileId
-      ? {
-          ...(getBrowserSettingsHostId(state) === hostId
-            ? { defaultBrowserSessionProfileId: null }
-            : {}),
-          defaultBrowserSessionProfileIdByHostId: {
-            ...state.defaultBrowserSessionProfileIdByHostId,
-            [hostId]: null
-          }
-        }
-      : {})
-  }
 }
 
 export function getDefaultBrowserProfileForHost(
