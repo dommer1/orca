@@ -37,7 +37,9 @@ describe('usage slices in the web client (preload fallback -> undefined)', () =>
   it('claude: fetch and enable no-op without throwing', async () => {
     stubWebClientFallback()
     const store = create<AppState>()(
-      (...args) => ({ ...createStatsSlice(...args), ...createClaudeUsageSlice(...args) }) as AppState
+      (...args) =>
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The fallback calls read only the stats host and the Claude usage slice supplied here.
+        ({ ...createStatsSlice(...args), ...createClaudeUsageSlice(...args) }) as AppState
     )
     await expect(store.getState().fetchClaudeUsage()).resolves.toBeUndefined()
     await expect(store.getState().enableClaudeUsage()).resolves.toBeUndefined()

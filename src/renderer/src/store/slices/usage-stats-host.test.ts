@@ -48,6 +48,7 @@ function stubLocalApi(overrides: Record<string, unknown> = {}) {
 
 function createStore() {
   return create<AppState>()(
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The host switch reads only the stats host and the Claude usage slice supplied here.
     (...args) => ({ ...createStatsSlice(...args), ...createClaudeUsageSlice(...args) }) as AppState
   )
 }

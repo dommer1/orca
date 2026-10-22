@@ -30,6 +30,7 @@ async function flushImmediatePromises(): Promise<void> {
 
 function createCodexOnlyStore() {
   return create<AppState>()(
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The refresh path reads only the local stats host and the Codex usage slice supplied here.
     (...args) => ({ statsHost: { kind: 'local' }, ...createCodexUsageSlice(...args) }) as AppState
   )
 }

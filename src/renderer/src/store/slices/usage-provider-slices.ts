@@ -76,8 +76,11 @@ function createUsageProviderSlice<
   config: UsageProviderConfig<Prefix, Name, T>
 ): StateCreator<AppState, [], [], ProviderUsageSlice<Prefix, Name, T>> {
   return (set, get) => {
+    const update = (patch: Partial<UsageData<T>>): void =>
+      set(createUsagePatch(config.prefix, patch))
     const read = (): UsageData<T> => readUsageData<T>(get(), config.prefix)
-    // Why: a host switch mid-request must not land the old host's answer on the new one.
+    // Why: a host switch mid-request must not land the old host's answer on the new one, so a
+    // request writes only through the host-bound `update` returned here.
     const bindToCurrentHost = () => {
       const host = get().statsHost
       const hostId = runtimeTargetEnvironmentId(host)
@@ -86,12 +89,12 @@ function createUsageProviderSlice<
           ? createRuntimeUsageAnalyticsApi(host, config.provider)
           : config.getLocalApi()
       const isCurrent = (): boolean => runtimeTargetEnvironmentId(get().statsHost) === hostId
-      const update = (patch: Partial<UsageData<T>>): void => {
+      const updateIfCurrent = (patch: Partial<UsageData<T>>): void => {
         if (isCurrent()) {
-          set(createUsagePatch(config.prefix, patch))
+          update(patch)
         }
       }
-      return { api, update, isCurrent }
+      return { api, update: updateIfCurrent, isCurrent }
     }
 
     const fetchUsage = async (opts?: { forceRefresh?: boolean }): Promise<void> => {
@@ -166,9 +169,9 @@ function createUsageProviderSlice<
     const setEnabled = async (enabled: boolean): Promise<void> => {
       try {
         const { api, update } = bindToCurrentHost()
-        const nextScanState = (await api.setEnabled({ enabled })) as
-          | T['snapshot']['scanState']
-          | undefined
+        const nextScanState: T['snapshot']['scanState'] | undefined = await api.setEnabled({
+          enabled
+        })
         if (!nextScanState) {
           return
         }
@@ -210,11 +213,11 @@ function createUsageProviderSlice<
       ...createUsagePatch(config.prefix, initialData),
       [`set${config.name}UsageEnabled`]: setEnabled,
       [`set${config.name}UsageScope`]: async (scope: T['scope']) => {
-        set(createUsagePatch(config.prefix, { scope }))
+        update({ scope })
         await fetchUsage()
       },
       [`set${config.name}UsageRange`]: async (range: T['range']) => {
-        set(createUsagePatch(config.prefix, { range }))
+        update({ range })
         await fetchUsage()
       },
       [`fetch${config.name}Usage`]: fetchUsage,
