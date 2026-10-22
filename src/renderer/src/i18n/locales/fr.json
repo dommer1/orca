@@ -9774,6 +9774,11 @@
               "invert": "inverser",
               "opposite": "opposé"
             },
+            "linkRoutingBackground": {
+              "background": "arrière-plan",
+              "focus": "focus",
+              "tab": "onglet"
+            },
             "terminalLinkActions": {
               "terminal": "terminal",
               "click": "clic",

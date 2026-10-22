@@ -9991,6 +9991,11 @@
               "invert": "invert",
               "opposite": "opposite"
             },
+            "linkRoutingBackground": {
+              "background": "background",
+              "focus": "focus",
+              "tab": "tab"
+            },
             "terminalLinkActions": {
               "terminal": "terminal",
               "chat": "chat",
