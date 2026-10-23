@@ -8,12 +8,13 @@ import type { WslMoveDriverDeps, WslMoveTerminalScope } from './wsl-move-driver-
 import { refusal } from './wsl-move-driver-plan'
 import type { WslMoveRestoreHintPane } from './wsl-move-restore-hints'
 import { assessWslMoveTerminals } from './wsl-move-terminal-gate'
+import { withWslMoveDormantPanes } from './wsl-move-dormant-panes'
 
 const sessionsOf = (panes: readonly WslMoveRestoreHintPane[]): string =>
   JSON.stringify(panes.map((pane) => pane.sessionId).sort())
 
 export async function pauseWslMoveScope(
-  deps: Pick<WslMoveDriverDeps, 'gateInputs' | 'listPanes' | 'quiesce'>,
+  deps: Pick<WslMoveDriverDeps, 'gateInputs' | 'listPanes' | 'quiesce' | 'dormantPanes'>,
   scope: WslMoveTerminalScope
 ): Promise<{ panes: readonly WslMoveRestoreHintPane[] } | WslMoveRefusal> {
   const before = deps.listPanes(scope)
@@ -28,9 +29,10 @@ export async function pauseWslMoveScope(
   }
   try {
     const { failedWorktreeIds } = await deps.quiesce.sleepWorkspaces(scope.workspaceIds)
+    // Panes slept before the move too: their checkpoints hold folders and scrollback nothing else does.
     return failedWorktreeIds.length > 0
       ? refusal('wsl_move_pause_failed', { detail: 'sleep-failed' })
-      : { panes }
+      : { panes: withWslMoveDormantPanes(panes, deps.dormantPanes?.(scope) ?? []) }
   } catch (error) {
     return refusal('wsl_move_pause_failed', {
       detail: error instanceof Error ? error.message : String(error)

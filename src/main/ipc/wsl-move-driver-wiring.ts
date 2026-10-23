@@ -5,6 +5,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { app } from 'electron'
+import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import { encodePairingOffer } from '../../shared/pairing'
 import { getPreferredPairingOffer } from '../../shared/runtime-environments'
 import { resolveEnvironment } from '../../shared/runtime-environment-store'
@@ -45,6 +46,7 @@ import {
 } from '../persistence/moving-wsl-projects/wsl-move-slept-scrollback'
 import { scheduleWslMoveRewriteRetry } from '../persistence/moving-wsl-projects/wsl-move-rewrite-retry'
 import { captureWslMoveRestoreHints } from '../persistence/moving-wsl-projects/wsl-move-restore-hints'
+import { listWslMoveDormantPanes } from '../persistence/moving-wsl-projects/wsl-move-dormant-panes'
 import {
   isWslMoveProjectFenced,
   wslMoveProjectRefForWorkspace
@@ -127,13 +129,18 @@ export function createWslMoveDriverDeps(
     exportManifest: (request) => exportWslMoveManifest(store, request),
     gateInputs: (scope) => collectWslMoveGateInputs(facts, scope),
     listPanes: (scope) => listWslMovePanes(facts, scope),
+    dormantPanes: (scope) =>
+      listWslMoveDormantPanes(
+        store.getWorkspaceSession(LOCAL_EXECUTION_HOST_ID),
+        scope.workspaceIds
+      ),
     quiesce: {
       sleepWorkspaces: (workspaceIds) => {
         const window = getTrustedUIRendererWindow()
         if (!window) {
           return Promise.reject(new Error('renderer_unavailable'))
         }
-        return requestWorktreeSleepFromRenderer(window, workspaceIds)
+        return requestWorktreeSleepFromRenderer(window, workspaceIds, { keepBrowserTabs: true })
       },
       livePtyIds: (workspaceIds) =>
         runtime.listWslMoveLiveTerminals(workspaceIds).map((terminal) => terminal.ptyId),

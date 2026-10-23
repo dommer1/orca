@@ -461,6 +461,24 @@ describe('moveProjectsToWslHost', () => {
       expect(world.slept).toEqual([])
     })
 
+    it('carries the folder and scrollback of panes slept before the move', async () => {
+      const preSlept = { paneKey: 'tab-0:pre', sessionId: 'pre-slept', wslDistro: null }
+      world.deps.dormantPanes = () => [preSlept]
+      const hinted: string[] = []
+      world.deps.quiesce.captureRestoreHints = async (panes) => {
+        hinted.push(...panes.map((pane) => pane.sessionId))
+        return { hints: [], unreadablePaneKeys: [], noCwdPaneKeys: [], staleCwdPaneKeys: [] }
+      }
+      const scrolled: string[] = []
+      world.deps.sleptScrollback = async (panes) => {
+        scrolled.push(...panes.map((pane) => pane.sessionId))
+        return { buffers: new Map(), problems: [], dispose: () => {} }
+      }
+      await moveProjectsToWslHost(world.deps, request)
+      expect(hinted).toEqual(['session-1', 'pre-slept'])
+      expect(scrolled).toEqual(['session-1', 'pre-slept'])
+    })
+
     it('removes the record when the quiesce refuses before its fence', async () => {
       let calls = 0
       world.deps.gateInputs = async () => ((calls += 1) === 3 ? busy : world.gate)
