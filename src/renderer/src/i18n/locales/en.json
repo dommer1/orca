@@ -4795,7 +4795,9 @@
           "c760c481c5": "Usage Overview",
           "55c910f4f1": "- some model prices are unavailable",
           "enableMuse": "Enable Muse",
-          "noLocalUsageYet": "No local Claude, Codex, OpenCode, or Muse usage found yet. The overview will populate after the next agent session writes token logs."
+          "noLocalUsageYet": "No local Claude, Codex, OpenCode, or Muse usage found yet. The overview will populate after the next agent session writes token logs.",
+          "enableProviderOnServer": "Enable a provider to scan this server's agent logs and build the combined token ledger.",
+          "noServerUsageYet": "No Claude, Codex, OpenCode, or Muse usage found on this server yet. The overview will populate after the next agent session writes token logs."
         },
         "share": {
           "card": {
@@ -8880,6 +8882,7 @@
           "7686cb5c36": "Connect this browser to a saved Orca server.",
           "bd0181eeca": "Remote Orca Servers",
           "8acf3f22e0": "Orca stats plus Claude, Codex, OpenCode, Muse token analytics and Grok subscription usage.",
+          "statsServerDescription": "Orca stats plus Claude, Codex, OpenCode and Muse token analytics for this server.",
           "954a8f5aef": "Stats & Usage",
           "a737a4bb22": "Keyboard shortcuts for common actions.",
           "23bf7a1ad4": "Shortcuts",

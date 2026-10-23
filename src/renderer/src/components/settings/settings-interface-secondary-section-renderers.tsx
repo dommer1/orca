@@ -138,10 +138,18 @@ export function renderStatsSettingsSection(context: SettingsRenderContext): Reac
     <SettingsSection
       id="stats"
       title={translate('auto.components.settings.Settings.954a8f5aef', 'Stats & Usage')}
-      description={translate(
-        'auto.components.settings.Settings.8acf3f22e0',
-        'Orca stats plus Claude, Codex, OpenCode, Muse token analytics and Grok subscription usage.'
-      )}
+      description={
+        // Why: Grok credits come from this computer's status bar, so a server's pane has no Grok tab.
+        hostScope.target.kind === 'local'
+          ? translate(
+              'auto.components.settings.Settings.8acf3f22e0',
+              'Orca stats plus Claude, Codex, OpenCode, Muse token analytics and Grok subscription usage.'
+            )
+          : translate(
+              'auto.components.settings.Settings.statsServerDescription',
+              'Orca stats plus Claude, Codex, OpenCode and Muse token analytics for this server.'
+            )
+      }
       searchEntries={navigation.getSectionSearchEntries('stats')}
     >
       {!view.isSectionMounted('stats') ? null : hostScope.available ? (
