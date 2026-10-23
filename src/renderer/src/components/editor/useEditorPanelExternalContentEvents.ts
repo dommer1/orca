@@ -123,7 +123,7 @@ export function useEditorPanelExternalContentEvents({
       const invalidatedDiffFileIds: string[] = []
       const invalidatedFileIds: string[] = []
       const storeState = useAppStore.getState()
-      const matched = getOpenFilesForExternalFileChange(openFilesRef.current, detail)
+      const matched = getOpenFilesForExternalFileChange(openFilesRef.current, detail, storeState)
       // Why: a tab of another workspace showing the same model is stale too.
       const siblingIds = new Set(
         matched.flatMap((file) =>
