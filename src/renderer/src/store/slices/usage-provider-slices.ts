@@ -168,11 +168,12 @@ function createUsageProviderSlice<
 
     const setEnabled = async (enabled: boolean): Promise<void> => {
       try {
-        const { api, update } = bindToCurrentHost()
+        const { api, update, isCurrent } = bindToCurrentHost()
         const nextScanState: T['snapshot']['scanState'] | undefined = await api.setEnabled({
           enabled
         })
-        if (!nextScanState) {
+        // Why: the rescan below binds afresh, so after a host switch it would hit the new host.
+        if (!nextScanState || !isCurrent()) {
           return
         }
         update({

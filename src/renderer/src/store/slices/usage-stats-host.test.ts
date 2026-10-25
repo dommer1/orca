@@ -125,6 +125,28 @@ describe('Stats & Usage host', () => {
     expect(window.api.claudeUsage.refresh).not.toHaveBeenCalled()
   })
 
+  it('does not rescan a host picked while Enable was pending on the previous one', async () => {
+    let releaseLocal: (value: ReturnType<typeof scanState>) => void = () => {}
+    const local = stubLocalApi({
+      setEnabled: vi.fn(
+        () =>
+          new Promise((resolve) => {
+            releaseLocal = resolve
+          })
+      )
+    })
+    const store = createStore()
+
+    const pending = store.getState().setClaudeUsageEnabled(true)
+    store.getState().setStatsHost(SERVER)
+    releaseLocal(scanState('local'))
+    await pending
+
+    expect(callRuntimeRpc).not.toHaveBeenCalled()
+    expect(local.refresh).not.toHaveBeenCalled()
+    expect(store.getState().claudeUsageScanState).toBeNull()
+  })
+
   it("reads the server's Orca stats and ignores the empty answer of a host without them", async () => {
     stubLocalApi()
     callRuntimeRpc.mockResolvedValueOnce({})
