@@ -263,9 +263,7 @@ export function StatsPane({
           </DropdownMenu>
         </div>
 
-        {/* Why: the Stats section lives inside the scroll-tracked settings page. Keeping only the
-            active panel mounted avoids hidden tab-content layout/focus churn that produced a visible
-            vertical jitter below the usage card when switching disabled providers. */}
+        {/* Mount only the active panel to avoid hidden layout/focus churn jittering the scroll-tracked settings page. */}
         <div>
           {!hostReady ? null : hostEnvironmentId !== null && hostUsageSupport !== 'supported' ? (
             <StatsHostUsageNotice support={hostUsageSupport} />

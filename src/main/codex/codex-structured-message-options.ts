@@ -6,7 +6,28 @@ import { CODEX_DEFAULT_SERVICE_TIER } from './codex-structured-service-tier'
 import type { CodexSession } from './codex-structured-session-state'
 import { applyCodexStructuredSessionOption } from './codex-structured-session-options'
 
-/** Resolve one message's choices and baseline without changing the next pick. */
+function codexModelDefaults(session: CodexSession, selected?: string) {
+  const listing = codexAcquireCatalogListing(session.catalogAccess)
+  const model =
+    selected ??
+    session.reportedOptions.model ??
+    listing?.models.find((entry) => entry.isDefault)?.id
+  const defaultEffort =
+    (model === session.reportedOptions.model ? session.reportedOptions.effort : undefined) ??
+    listing?.models.find((entry) => entry.id === model)?.defaultEffort
+  return { model, defaultEffort }
+}
+
+export function resolvedCodexGoalSettings(
+  session: CodexSession,
+  choices: AgentSessionExecutionOptions = {}
+) {
+  const { model, defaultEffort } = codexModelDefaults(session, choices.model)
+  const effort = choices.effort ?? defaultEffort
+  return { ...(model ? { model } : {}), ...(effort ? { effort } : {}) }
+}
+
+/** Resolve per-message overrides without replacing the session's saved picks. */
 export async function resolvedCodexMessageOptions(
   session: CodexSession,
   choices: AgentSessionExecutionOptions | undefined
@@ -14,19 +35,13 @@ export async function resolvedCodexMessageOptions(
   if (choices === undefined) {
     return undefined
   }
-  const listing = codexAcquireCatalogListing(session.catalogAccess)
   const priorModel = session.options.get('model')
   const priorEffort = session.options.get('effort')
-  // An unchosen key keeps what the thread runs; another model brings its own default effort.
-  const thread = session.reportedOptions
-  const model =
-    choices.model ?? thread.model ?? listing?.models.find((entry) => entry.isDefault)?.id
+  // Keep the thread's effort unless switching models.
+  const { model, defaultEffort } = codexModelDefaults(session, choices.model)
   if (!model && (choices.effort || priorModel || priorEffort)) {
     throw new AgentSessionOptionRejectedError(new Error('codex default model is unavailable'))
   }
-  const listedModel = listing?.models.find((entry) => entry.id === model)
-  const threadEffort = model === thread.model ? thread.effort : undefined
-  const defaultEffort = threadEffort ?? listedModel?.defaultEffort
   if (choices.effort === undefined && priorEffort && !defaultEffort) {
     throw new AgentSessionOptionRejectedError(new Error('codex default effort is unavailable'))
   }
@@ -78,12 +93,11 @@ export async function resolvedCodexMessageOptions(
       choices.fastMode === 'true' ||
       (choices.serviceTier && choices.serviceTier !== CODEX_DEFAULT_SERVICE_TIER))
   ) {
-    // Captured intent was admitted when picked; an installation change cannot rewrite it.
+    // Preserve previously admitted choices across installation changes.
     selected.options.set('model', model)
     if (!defaultEffort && choices.effort === undefined) {
       selected.options.delete('effort')
     }
-    // Where the model brought an effort, it is the thread's own for the thread's model.
     if (
       choices.effort === undefined &&
       defaultEffort &&
