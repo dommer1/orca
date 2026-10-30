@@ -153,7 +153,7 @@ async function startOrcadRuntime(
     observedStatusCapture.observe(enriched)
   )
   // Subscribe before hooks start so early turns are counted.
-  const { startOrcadStats } = await import('./orcad-stats')
+  const { startOrcadStats, startOrcadUsageAnalytics } = await import('./orcad-stats')
   const stats = startOrcadStats(runtimeUserDataPath, agentHookServer, registerCleanup)
   await agentHookServer.start({
     env: 'production',
@@ -228,7 +228,6 @@ async function startOrcadRuntime(
   const { installOrcadEmulatorBridge } = await import('./orcad-emulator-bridge')
   installOrcadEmulatorBridge(runtime, registerCleanup)
 
-  const { startOrcadUsageAnalytics } = await import('./orcad-usage-analytics')
   startOrcadUsageAnalytics(runtime, runtimeUserDataPath, profileStore, registerCleanup)
 
   // Restore prior desktop-pushed account selection before automations or CLI launches.
